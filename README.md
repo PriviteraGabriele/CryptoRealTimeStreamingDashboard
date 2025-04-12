@@ -78,7 +78,7 @@ docker compose --profile train run --rm ml-trainer
 | Tecnologia                 | Ruolo nel progetto                          | Perché è stata scelta                                              |
 |---------------------------|---------------------------------------------|--------------------------------------------------------------------|
 | **Bybit WebSocket API**   | Sorgente dei dati (real-time public trades) | Fornisce dati affidabili, aggiornati al secondo, via WebSocket     |
-| **Apache Kafka**          | Ingestione e buffer dei dati                | Alta disponibilità, scalabilità e gestione dello stream            |
+| **Apache Kafka**          | Broker di streaming per gestire il flusso dati | Alta disponibilità, scalabilità e gestione dello stream            |
 | **Apache Spark Streaming**| Processamento in tempo reale                | Supporta trasformazioni avanzate e scrittura su Elasticsearch      |
 | **Elasticsearch**         | Archiviazione e indicizzazione dei dati     | Ricerca veloce, supporto nativo per time series e analisi testuali |
 | **Kibana**                | Visualizzazione dei dati                    | Dashboard potenti e real-time integrate con Elasticsearch          |
