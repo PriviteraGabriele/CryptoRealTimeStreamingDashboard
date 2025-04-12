@@ -1,0 +1,16 @@
+# Ambiente virtuale
+venv/
+
+# File Python compilati
+__pycache__/
+*.pyc
+
+# File temporanei di sistema/editor
+*.log
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Modello
+*.pkl

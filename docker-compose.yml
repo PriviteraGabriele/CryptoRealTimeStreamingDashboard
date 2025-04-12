@@ -1,0 +1,125 @@
+services:
+    zookeeper:
+        image: confluentinc/cp-zookeeper:latest
+        container_name: zookeeper
+        ports:
+            - "2181:2181"
+        environment:
+            ZOOKEEPER_CLIENT_PORT: 2181
+        restart: always
+
+    kafka:
+        image: confluentinc/cp-kafka:latest
+        container_name: kafka
+        ports:
+            - "9092:9092"
+            - "29092:29092"
+        environment:
+            KAFKA_BROKER_ID: 1
+            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://host.docker.internal:29092
+            KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+        restart: always
+
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+        container_name: elasticsearch
+        environment:
+            - discovery.type=single-node
+            - xpack.security.enabled=false
+        ports:
+            - "9200:9200"
+        restart: always
+
+    kibana:
+        image: docker.elastic.co/kibana/kibana:8.11.1
+        container_name: kibana
+        ports:
+            - "5601:5601"
+        depends_on:
+            - elasticsearch
+        restart: always
+
+    spark-master:
+        build:
+            context: ./spark
+        container_name: spark-master
+        environment:
+            - SPARK_MODE=master
+        ports:
+            - "7077:7077"
+            - "8080:8080"
+        restart: always
+
+    spark-worker:
+        build:
+            context: ./spark
+        container_name: spark-worker
+        environment:
+            - SPARK_MODE=worker
+            - SPARK_MASTER_URL=spark://spark-master:7077
+        depends_on:
+            - spark-master
+        restart: always
+
+    producer:
+        container_name: producer
+        build:
+            context: ./producer
+        depends_on:
+            - kafka
+        environment:
+            - KAFKA_HOST=kafka:29092
+        restart: always
+
+    consumer:
+        container_name: consumer
+        build:
+            context: ./consumer
+        depends_on:
+            - kafka
+        environment:
+            - KAFKA_HOST=kafka:29092
+        restart: always
+
+    spark-job:
+        build:
+            context: ./spark
+        container_name: spark-job
+        depends_on:
+            - kafka
+            - elasticsearch
+            - spark-master
+        environment:
+            - SPARK_MASTER=spark://spark-master:7077
+            - ES_HOST=elasticsearch
+            - ES_PORT=9200
+        command:
+            [
+                "/bin/sh",
+                "-c",
+                "spark-submit --master $SPARK_MASTER --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1,org.elasticsearch:elasticsearch-spark-30_2.12:8.11.1 bybit_spark_streaming.py",
+            ]
+        restart: always
+
+    ml-trainer:
+        build:
+            context: ./ml-trainer
+        container_name: ml-trainer
+        volumes:
+            - ./model:/app/model
+        command: ["python", "train_model.py"]
+        profiles: ["train"]
+        restart: "no"
+
+    ml-service:
+        build:
+            context: ./ml-service
+        container_name: ml-service
+        ports:
+            - "8000:8000"
+        volumes:
+            - ./model:/app/model
+        restart: always
